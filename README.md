@@ -271,8 +271,6 @@ Every voluntary contribution can help keep the project running and support futur
 
 This link is presented as voluntary project support. It should not be described as a tax-deductible charitable donation unless the recipient organization and applicable law specifically provide that status.
 
-ShurjoPay provides online payment solutions and payment-link functionality for merchants; the supplied link is included here as the project's support/payment link. citeturn1search0turn1search1
-
 ## 🔗 Supplied ShurjoPay Link
 
 The project documentation includes this exact link supplied by the project owner:
