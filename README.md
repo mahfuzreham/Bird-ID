@@ -1,146 +1,336 @@
-# Bird ID 🦜
+# Bird ID 🦜 — AI Bird Identification & Bird Species Scanner
 
-Guest-mode AI bird identification web app with **pay-per-scan credits**.
+**Bird ID** is a lightweight, mobile-friendly web application for identifying birds from photographs. It is built for bird lovers, bird owners, photographers, wildlife learners, students and developers who want a simple **bird identification from photo** experience.
 
-## What this project does
+## SEO-friendly overview
 
-A visitor can open the website without registration/login, buy scan credits, upload a bird photo, and receive an AI-assisted identification result.
+Bird ID helps users **identify a bird by image**, discover a possible **bird species and scientific name**, understand visible identification clues, and get guidance for **baby/juvenile bird identification**. The project combines AI image analysis with a simple pay-per-scan model and guest access.
 
-### Main flow
+> AI identification is an estimate. Similar species, hybrids, juvenile plumage, poor lighting or incomplete photos can produce uncertain results. For scientific, legal, veterinary or wildlife-rescue decisions, consult an appropriate expert.
 
-`Guest → Buy Scan → Stripe or bKash → Verified Payment → Scan Credit → Upload Bird Photo → AI Identification`
+## ⭐ Key Features
 
-## Features
+- 🦜 AI bird identification from photo
+- 📷 JPG, PNG and WEBP image upload
+- 🐣 Baby bird / juvenile bird identification guidance
+- 🔬 Possible bird species and scientific name
+- 📊 Confidence estimate
+- 🔍 Visible identification clues
+- 🪶 Possible appearance changes as the bird grows
+- 🔄 Alternative species when the result is uncertain
+- 👤 Guest Mode — no registration or login
+- 🪙 Pay-per-scan credits
+- 💳 Stripe Checkout
+- 🇧🇩 bKash Tokenized Checkout
+- 🧪 bKash Sandbox mode
+- 🔴 bKash Live mode
+- 🔐 Server-side payment verification
+- 🧾 Invoice and payment amount validation
+- 🛡️ Duplicate-credit protection with database transactions
+- 🗄️ MySQL payment and scan records
+- 📱 Mobile-friendly interface
+- ⚡ PHP + MySQL deployment suitable for cPanel/shared hosting/VPS
+- 🔑 API secrets kept server-side
 
-- No registration/login required
-- Guest session with scan credits
-- Bird photo upload (JPG/PNG/WEBP)
-- AI-assisted bird identification
-- Juvenile/baby bird-aware identification prompt
-- Confidence and alternative-species guidance
-- Pay-per-scan pricing controlled server-side
-- Stripe Checkout
-- Stripe signed webhook verification
-- bKash Tokenized Checkout API
-- bKash **Sandbox and Live mode switch**
-- bKash server-side token grant + payment create
-- bKash server-side Execute/Query verification
-- Payment amount/invoice validation
-- Database transaction to prevent duplicate credits
-- MySQL payment and scan records
-- API secrets kept server-side
+## 🔎 How It Works
 
-## Payment modes
+```text
+Guest
+  ↓
+Choose scan package
+  ↓
+Stripe or bKash
+  ↓
+Server-side payment verification
+  ↓
+Scan credit added
+  ↓
+Upload bird photo
+  ↓
+AI image analysis
+  ↓
+Bird identification result
+  ↓
+1 scan credit consumed
+```
 
-### Stripe
+No registration is required for the basic guest flow.
 
-Stripe Checkout is available from the main page. The server creates the Checkout Session and calculates the amount. Scan credits are added only after the signed `checkout.session.completed` webhook is validated.
+## 💰 Pay Per Scan
 
-### bKash Sandbox
+The default price is controlled by the server:
 
-Use this while developing/testing:
+```php
+$PRICE_PER_SCAN = 10;
+$CURRENCY = 'BDT';
+```
+
+Example packages:
+
+- 1 scan — ৳10
+- 5 scans — ৳50
+- 10 scans — ৳100
+
+Change pricing only in the server configuration. Never trust a price submitted by the browser.
+
+## 💳 Stripe Checkout
+
+Stripe is available as an international payment option. The server creates the Checkout Session and calculates the order amount.
+
+Scan credits are added only after a valid signed Stripe webhook is received and the payment/order data matches the pending order.
+
+### Stripe webhook
+
+Configure:
+
+```text
+https://YOUR-DOMAIN/bird-id/stripe_webhook.php
+```
+
+Event:
+
+```text
+checkout.session.completed
+```
+
+Never expose the Stripe secret key in frontend JavaScript.
+
+## 🇧🇩 bKash Checkout API
+
+Bird ID supports the official bKash Tokenized Checkout architecture for merchant accounts.
+
+### Sandbox
+
+For development/testing:
 
 ```php
 $BKASH_MODE = 'sandbox';
 ```
 
-The project uses the configured bKash sandbox base URL and the official Tokenized Checkout API flow.
+### Live
 
-### bKash Live
-
-After your bKash merchant account is approved for production, switch only this value:
+For production:
 
 ```php
 $BKASH_MODE = 'live';
 ```
 
-Then enter your **live** bKash App Key, App Secret, Username and Password. Do not put these credentials in GitHub. Keep them only in the server-side `config.php` or environment variables.
+Use your approved production bKash credentials only on the server. Never publish App Secret, password or other private credentials in GitHub.
 
-Live API base URL configured by the project:
+### bKash payment flow
 
-`https://tokenized.pay.bka.sh/v1.2.0-beta`
+```text
+Create local order
+      ↓
+Grant bKash access token
+      ↓
+Create bKash payment
+      ↓
+Redirect customer to bKash Checkout
+      ↓
+bKash callback
+      ↓
+Execute payment
+      ↓
+Query status if required
+      ↓
+Validate status + amount + invoice
+      ↓
+Mark payment paid
+      ↓
+Add scan credits once
+```
 
-Sandbox API base URL configured by the project:
+The application must never add credits from a browser-side `success=true` parameter.
 
-`https://tokenized.sandbox.bka.sh/v1.2.0-beta`
+### bKash configuration
 
-## bKash Checkout flow
+Copy `config.example.php` to `config.php` and set your approved merchant values:
 
-1. `bkash_create.php` creates a pending local order.
-2. Server requests a bKash access token using merchant credentials.
-3. Server creates the bKash Checkout payment with the exact scan amount and local invoice number.
-4. User is redirected to the official bKash Checkout URL.
-5. bKash returns the payment ID to `bkash_callback.php`.
-6. Server executes the payment and falls back to payment-status query when necessary.
-7. Server validates transaction status, merchant invoice number and exact amount.
-8. The database transaction marks the payment as paid and adds scan credits exactly once.
+```php
+$BKASH_MODE = 'sandbox'; // change to live for production
+$BKASH_APP_KEY = 'YOUR_BKASH_APP_KEY';
+$BKASH_APP_SECRET = 'YOUR_BKASH_APP_SECRET';
+$BKASH_USERNAME = 'YOUR_BKASH_USERNAME';
+$BKASH_PASSWORD = 'YOUR_BKASH_PASSWORD';
+```
 
-**Never trust a browser-side `success=true` parameter.** Credits must come only after server-side bKash verification.
+Use the current official bKash merchant documentation/environment URLs supplied for your account. Do not hard-code or expose production credentials in source control.
 
-## Configuration
+## 🤖 AI Bird Identification
 
-Copy:
+The backend sends the uploaded image to a vision-capable AI model and requests a structured result including:
 
-- `config.example.php` → `config.php`
-- `db_config.example.php` → `db_config.php`
+- Possible bird name
+- Scientific name
+- Confidence estimate
+- Juvenile/adult stage guidance
+- Visible identification clues
+- Expected mature appearance
+- Alternative species
 
-Set:
+Example configuration:
 
-- OpenAI API key/model
-- Price per scan
-- Public HTTPS app URL
-- Stripe secret key and webhook secret
-- bKash mode: `sandbox` or `live`
-- bKash merchant credentials
-- MySQL credentials
+```php
+$OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY';
+$BIRD_MODEL = 'gpt-4.1-mini';
+```
 
-## Database
+Model availability and API pricing can change, so use the model configuration appropriate for your OpenAI account.
 
-Import `schema.sql` into MySQL. It creates:
+## 👤 Guest Mode
 
-- `users` — guest session identities and scan credits
-- `payments` — Stripe/bKash orders and payment state
-- `scan_logs` — successful AI scan records
+There is no required account registration or login.
 
-## cPanel deployment
+A secure random server session identifies each guest. Purchased credits are attached to that session.
+
+### Guest limitation
+
+Because this is a guest system, clearing cookies, changing browser/device or losing the session can make previously purchased credits inaccessible. For a larger production service, an optional recovery mechanism can be added later using a signed payment receipt, phone number or email.
+
+## 🗄️ Database Structure
+
+Import `schema.sql` into MySQL.
+
+Main tables:
+
+- `users` — guest identities and scan credits
+- `payments` — payment provider, invoice, amount, scan quantity and status
+- `scan_logs` — successful bird identification results
+
+## ⚙️ cPanel / VPS Installation
+
+### Requirements
+
+- PHP 8+
+- MySQL/MariaDB
+- PDO MySQL
+- cURL
+- HTTPS/SSL
+- OpenAI API access
+- Stripe account for Stripe payments
+- Approved bKash merchant/API access for bKash payments
+
+### Install
 
 1. Create a MySQL database and database user.
 2. Import `schema.sql`.
-3. Upload the project into `public_html/bird-id/` (or your preferred document root).
-4. Create `config.php` and `db_config.php` from the example files.
-5. Use PHP 8+ with cURL and PDO MySQL enabled.
-6. Enable HTTPS.
-7. Configure the Stripe webhook:
-   `https://YOUR-DOMAIN/bird-id/stripe_webhook.php`
-   Event: `checkout.session.completed`
-8. bKash callback URL used by the project:
-   `https://YOUR-DOMAIN/bird-id/bkash_callback.php`
-9. Test with bKash Sandbox first.
-10. After approval, change `BKASH_MODE` to `live` and replace credentials with production credentials.
+3. Upload the project to your website.
+4. Copy `config.example.php` → `config.php`.
+5. Copy `db_config.example.php` → `db_config.php`.
+6. Add private API/database credentials.
+7. Make sure private configuration files cannot be downloaded publicly.
+8. Enable HTTPS.
+9. Configure Stripe webhook.
+10. Configure the official bKash callback and verification flow.
+11. Test payments in the appropriate test/sandbox environment.
+12. Move to production only after successful verification.
 
-## Security checklist
+## 🔐 Security Checklist
 
-- Never commit `config.php` or `db_config.php`.
-- Never expose Stripe secret keys, OpenAI keys or bKash credentials in JavaScript.
-- Keep `.gitignore` configured for secrets.
-- Use HTTPS in production.
-- Validate payment amount, invoice/order ID and payment status server-side.
-- Credit a payment only once inside a database transaction.
-- Add rate limiting/CAPTCHA before opening the service publicly.
-- Consider an optional recovery mechanism for guest-paid credits because clearing browser cookies can lose access to a guest session.
+Never commit:
 
-## Important note about the supplied ShurjoPayment URL
+```text
+config.php
+db_config.php
+.env
+OpenAI API keys
+Stripe secret keys
+Stripe webhook secrets
+bKash App Secret
+bKash Password
+Database passwords
+```
 
-The following URL was supplied for reference:
+Production payment security should include:
 
-`https://pay.shurjopayment.com/d21kNExwjP`
+- Server-side amount calculation
+- Stripe webhook signature verification
+- bKash server-side payment verification
+- Invoice/order matching
+- Exact amount matching
+- Payment-status validation
+- One-time crediting
+- Database transactions
+- HTTPS
+- Rate limiting/CAPTCHA for public usage
 
-It is **not used as the bKash Checkout endpoint** in this project. ShurjoPay and bKash are separate payment integrations. If you want ShurjoPay added as a third gateway, it should be implemented separately with its own server-side verification flow.
+## ❤️ Support Bird ID Development
 
-## Production readiness
+Bird ID is being developed as a useful public **AI bird identification tool** for bird lovers, learners, photographers, students and wildlife enthusiasts.
 
-The code is structured for deployment, but payment providers still require your own approved merchant account and production credentials. Do not switch to bKash Live until your merchant credentials and production access have been issued by bKash and you have completed a successful sandbox test.
+If you find Bird ID useful and want to help with continued development, hosting, AI/API costs, security, maintenance and new bird-identification features, you can voluntarily support the project through the following ShurjoPay payment link:
 
-## License
+### 💝 Donate / Support the Project
 
-Add your preferred license before public distribution.
+**ShurjoPay Support & Donation Link:**
+
+https://pay.shurjopayment.com/d21kNExwjP
+
+Every voluntary contribution can help keep the project running and support future improvements such as a larger bird database, better juvenile-bird recognition, multilingual results, bird sound identification and additional payment options.
+
+This link is presented as voluntary project support. It should not be described as a tax-deductible charitable donation unless the recipient organization and applicable law specifically provide that status.
+
+ShurjoPay provides online payment solutions and payment-link functionality for merchants; the supplied link is included here as the project's support/payment link. citeturn1search0turn1search1
+
+## 🔗 Supplied ShurjoPay Link
+
+The project documentation includes this exact link supplied by the project owner:
+
+```text
+https://pay.shurjopayment.com/d21kNExwjP
+```
+
+It is separate from the bKash and Stripe gateway integrations. If ShurjoPay is later added as a third automatic scan-credit gateway, it should use its own server-side order creation, callback and payment verification implementation.
+
+## 🌍 SEO Keywords
+
+**Primary keywords:**
+
+`AI bird identification`, `bird identification from photo`, `identify bird by image`, `bird species identifier`, `bird photo scanner`, `bird species recognition`, `AI bird scanner`, `bird identification app`, `bird identification website`.
+
+**Long-tail keywords:**
+
+`identify a bird from a photo`, `identify bird species using AI`, `free bird identification tool`, `baby bird identification from photo`, `juvenile bird identification`, `bird scientific name finder`, `bird species detector`, `bird recognition AI`, `Bangladesh bird identification`, `Bangla bird identification`.
+
+**Bangla keywords:**
+
+`পাখি চেনার অ্যাপ`, `ছবি দিয়ে পাখি চেনা`, `পাখির ছবি দিয়ে জাত চেনা`, `পাখি শনাক্ত করার AI`, `বাচ্চা পাখি চেনা`, `পাখির প্রজাতি চেনা`, `পাখির বৈজ্ঞানিক নাম`, `ছবি দেখে পাখি শনাক্ত`.
+
+## 🚀 Future Roadmap
+
+- Larger global bird species database
+- Regional species suggestions
+- Bird habitat and distribution information
+- Bird diet and care guidance
+- Bird sound identification
+- Identification history
+- Optional user accounts and credit recovery
+- Admin dashboard
+- More payment providers
+- Multilingual results
+- Community corrections
+- Expert review workflow
+- Improved juvenile bird recognition
+
+## ⚠️ Responsible Use
+
+Do not use an AI result as the sole basis for wildlife ownership, trade, rescue, veterinary treatment, legal identification or scientific publication. When accuracy matters, confirm the species with a qualified ornithologist, wildlife authority, veterinarian or other appropriate expert.
+
+Do not use Bird ID to facilitate illegal capture, trafficking, sale or collection of protected wildlife.
+
+## 🤝 Contributions
+
+Issues, documentation improvements, translations, feature suggestions and responsible code contributions are welcome.
+
+Please keep all payment credentials, API keys, database passwords and private configuration outside Git commits.
+
+## 📜 License
+
+Add the license that matches your intended distribution model before publishing a stable production release.
+
+---
+
+**Bird ID — Identify birds from photos with AI. 🦜**
+
+Built for bird lovers, learners, photographers and developers.
