@@ -1,0 +1,2 @@
+<?php
+require __DIR__.'/auth.php';require __DIR__.'/config.php';header('Content-Type: application/json; charset=utf-8');require_login();$invoice=trim($_POST['invoice_id']??'');$paymentId=trim($_POST['payment_id']??'');if(!$invoice||!$paymentId){http_response_code(400);echo json_encode(['error'=>'invoice_id and payment_id required']);exit;}http_response_code(501);echo json_encode(['error'=>'Connect the official bKash Execute/Query Payment API here. Credits must only be added after server-side status, amount and invoice verification.']);
