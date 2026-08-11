@@ -1,5 +1,6 @@
 <?php
-require __DIR__.'/auth.php'; require __DIR__.'/config.php'; header('Content-Type: application/json; charset=utf-8'); $u=require_login();
+require __DIR__.'/auth.php'; require __DIR__.'/config.php'; require __DIR__.'/rate_limit.php'; header('Content-Type: application/json; charset=utf-8'); $u=require_login();
+if(!bird_rate_limit('analyze',6,60)){http_response_code(429);echo json_encode(['error'=>'Too many scan requests. Please wait a minute.'],JSON_UNESCAPED_UNICODE);exit;}
 if($u['credits']<1){http_response_code(402);echo json_encode(['error'=>'No scan credit. Please buy a scan.'],JSON_UNESCAPED_UNICODE);exit;}
 if(!isset($_FILES['photo'])||$_FILES['photo']['error']!==UPLOAD_ERR_OK){http_response_code(400);echo json_encode(['error'=>'Upload a bird image'],JSON_UNESCAPED_UNICODE);exit;}
 $f=$_FILES['photo'];if($f['size']>8*1024*1024){http_response_code(400);echo json_encode(['error'=>'Max 8MB'],JSON_UNESCAPED_UNICODE);exit;}$mime=mime_content_type($f['tmp_name']);if(!in_array($mime,['image/jpeg','image/png','image/webp'],true)){http_response_code(400);echo json_encode(['error'=>'JPG, PNG or WEBP only'],JSON_UNESCAPED_UNICODE);exit;}
