@@ -1,0 +1,10 @@
+{
+  "name": "Bird ID — AI Bird Identification",
+  "short_name": "Bird ID",
+  "start_url": "./index.php",
+  "display": "standalone",
+  "background_color": "#f4f7f5",
+  "theme_color": "#176b35",
+  "description": "Identify birds from photos with AI.",
+  "icons": []
+}

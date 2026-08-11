@@ -18,6 +18,12 @@ Bird ID helps users **identify a bird by image**, discover a possible **bird spe
 - 🔍 Visible identification clues
 - 🪶 Possible appearance changes as the bird grows
 - 🔄 Alternative species when the result is uncertain
+- 📚 Scan History for the current guest session
+- 🗂️ Searchable starter Bird Species Directory
+- 🔊 Bird Sound ID upload interface with server-side provider adapter
+- 🛠️ Token-protected Admin Dashboard
+- 🛡️ Lightweight session rate-limiter helper
+- 📱 Mobile-friendly interface + PWA app shell
 - 👤 Guest Mode — no registration or login
 - 🪙 Pay-per-scan credits
 - 💳 Stripe Checkout
@@ -28,9 +34,51 @@ Bird ID helps users **identify a bird by image**, discover a possible **bird spe
 - 🧾 Invoice and payment amount validation
 - 🛡️ Duplicate-credit protection with database transactions
 - 🗄️ MySQL payment and scan records
-- 📱 Mobile-friendly interface
 - ⚡ PHP + MySQL deployment suitable for cPanel/shared hosting/VPS
 - 🔑 API secrets kept server-side
+
+## 🆕 V2.1 Implementation Notes
+
+Version **2.1.0** adds the foundation for the next platform stage:
+
+- `species.json` — starter species catalog with common/scientific names, habitats and regions.
+- `species.php` — searchable species directory.
+- `sound.html` + `sound_id.php` — secure audio upload flow and provider adapter.
+- `admin.php` — server-token protected dashboard with basic operational/payment analytics.
+- `rate_limit.php` — reusable session rate limiter for public endpoints.
+- `manifest.webmanifest` + `sw.js` — installable/offline app shell foundation.
+- `migrations/2026-08-11-v2-1.sql` — favorites and community-correction tables.
+
+### Bird Sound ID limitation
+
+The sound feature intentionally **fails closed** until a verified bird-audio classification provider is configured. Set these values only in the private server configuration copied from `config.example.php`:
+
+```php
+$BIRD_SOUND_API_URL = 'YOUR_PROVIDER_ENDPOINT';
+$BIRD_SOUND_API_KEY = 'YOUR_PRIVATE_SERVER_KEY';
+```
+
+No bird-audio provider credential was added to GitHub. The adapter expects a multipart `audio` upload and a JSON response containing one of `result`, `prediction`, or `label`. Adapt the request/response mapping if your selected provider uses a different API contract.
+
+### Admin Dashboard
+
+Configure a long random server-side token:
+
+```php
+$ADMIN_TOKEN = 'YOUR_LONG_RANDOM_ADMIN_SECRET';
+```
+
+Then open `admin.php` and sign in. Do not publish the token or place it in frontend JavaScript.
+
+### V2.1 database migration
+
+After the original `schema.sql` has been imported, apply:
+
+```text
+migrations/2026-08-11-v2-1.sql
+```
+
+This creates `favorites` and `corrections` without replacing the existing payment/scan tables.
 
 ## 🔎 How It Works
 
@@ -145,17 +193,7 @@ The application must never add credits from a browser-side `success=true` parame
 
 ### bKash configuration
 
-Copy `config.example.php` to `config.php` and set your approved merchant values:
-
-```php
-$BKASH_MODE = 'sandbox'; // change to live for production
-$BKASH_APP_KEY = 'YOUR_BKASH_APP_KEY';
-$BKASH_APP_SECRET = 'YOUR_BKASH_APP_SECRET';
-$BKASH_USERNAME = 'YOUR_BKASH_USERNAME';
-$BKASH_PASSWORD = 'YOUR_BKASH_PASSWORD';
-```
-
-Use the current official bKash merchant documentation/environment URLs supplied for your account. Do not hard-code or expose production credentials in source control.
+Copy `config.example.php` to `config.php` and set your approved merchant values. Keep all private values outside Git.
 
 ## 🤖 AI Bird Identification
 
@@ -190,13 +228,15 @@ Because this is a guest system, clearing cookies, changing browser/device or los
 
 ## 🗄️ Database Structure
 
-Import `schema.sql` into MySQL.
+Import `schema.sql` into MySQL, then apply the V2.1 migration.
 
 Main tables:
 
 - `users` — guest identities and scan credits
 - `payments` — payment provider, invoice, amount, scan quantity and status
 - `scan_logs` — successful bird identification results
+- `favorites` — saved bird species per user identity
+- `corrections` — community correction submissions awaiting review
 
 ## ⚙️ cPanel / VPS Installation
 
@@ -210,21 +250,24 @@ Main tables:
 - OpenAI API access
 - Stripe account for Stripe payments
 - Approved bKash merchant/API access for bKash payments
+- Optional verified bird-audio API for Sound ID
 
 ### Install
 
 1. Create a MySQL database and database user.
 2. Import `schema.sql`.
-3. Upload the project to your website.
-4. Copy `config.example.php` → `config.php`.
-5. Copy `db_config.example.php` → `db_config.php`.
-6. Add private API/database credentials.
-7. Make sure private configuration files cannot be downloaded publicly.
-8. Enable HTTPS.
-9. Configure Stripe webhook.
-10. Configure the official bKash callback and verification flow.
-11. Test payments in the appropriate test/sandbox environment.
-12. Move to production only after successful verification.
+3. Apply `migrations/2026-08-11-v2-1.sql`.
+4. Upload the project to your website.
+5. Copy `config.example.php` → `config.php`.
+6. Copy `db_config.example.php` → `db_config.php`.
+7. Add private API/database credentials.
+8. Make sure private configuration files cannot be downloaded publicly.
+9. Enable HTTPS.
+10. Configure Stripe webhook.
+11. Configure the official bKash callback and verification flow.
+12. Optionally configure a verified bird-audio provider for Sound ID.
+13. Test payments in the appropriate test/sandbox environment.
+14. Move to production only after successful verification.
 
 ## 🔐 Security Checklist
 
@@ -240,9 +283,11 @@ Stripe webhook secrets
 bKash App Secret
 bKash Password
 Database passwords
+Bird Sound provider API keys
+Admin tokens
 ```
 
-Production payment security should include:
+Production security should include:
 
 - Server-side amount calculation
 - Stripe webhook signature verification
@@ -254,6 +299,7 @@ Production payment security should include:
 - Database transactions
 - HTTPS
 - Rate limiting/CAPTCHA for public usage
+- Restricted/noindex admin dashboard
 
 ## ❤️ Support Bird ID Development
 
@@ -271,16 +317,6 @@ Every voluntary contribution can help keep the project running and support futur
 
 This link is presented as voluntary project support. It should not be described as a tax-deductible charitable donation unless the recipient organization and applicable law specifically provide that status.
 
-## 🔗 Supplied ShurjoPay Link
-
-The project documentation includes this exact link supplied by the project owner:
-
-```text
-https://pay.shurjopayment.com/d21kNExwjP
-```
-
-It is separate from the bKash and Stripe gateway integrations. If ShurjoPay is later added as a third automatic scan-credit gateway, it should use its own server-side order creation, callback and payment verification implementation.
-
 ## 🌍 SEO Keywords
 
 **Primary keywords:**
@@ -295,21 +331,32 @@ It is separate from the bKash and Stripe gateway integrations. If ShurjoPay is l
 
 `পাখি চেনার অ্যাপ`, `ছবি দিয়ে পাখি চেনা`, `পাখির ছবি দিয়ে জাত চেনা`, `পাখি শনাক্ত করার AI`, `বাচ্চা পাখি চেনা`, `পাখির প্রজাতি চেনা`, `পাখির বৈজ্ঞানিক নাম`, `ছবি দেখে পাখি শনাক্ত`.
 
-## 🚀 Future Roadmap
+## 🚀 Roadmap
+
+### V2.1 foundation
 
 - Larger global bird species database
 - Regional species suggestions
 - Bird habitat and distribution information
-- Bird diet and care guidance
-- Bird sound identification
+- Searchable species directory
+- Bird sound identification adapter
 - Identification history
+- Admin dashboard and payment analytics
+- Rate limiting foundation
+- PWA/mobile foundation
+- Favorites and community-correction data model
+
+### V2.2 / V3 next
+
+- Verified large-scale species dataset with source attribution
+- Production bird-audio classifier integration
+- Full favorites UI and correction submission/review workflow
+- Expert review queue
 - Optional user accounts and credit recovery
-- Admin dashboard
-- More payment providers
 - Multilingual results
-- Community corrections
-- Expert review workflow
-- Improved juvenile bird recognition
+- Improved juvenile bird recognition evaluation
+- SEO landing pages for species and regions
+- More payment providers and deeper payment analytics
 
 ## ⚠️ Responsible Use
 
@@ -321,7 +368,7 @@ Do not use Bird ID to facilitate illegal capture, trafficking, sale or collectio
 
 Issues, documentation improvements, translations, feature suggestions and responsible code contributions are welcome.
 
-Please keep all payment credentials, API keys, database passwords and private configuration outside Git commits.
+Please keep all payment credentials, API keys, database passwords, admin tokens and private configuration outside Git commits.
 
 ## 📜 License
 
